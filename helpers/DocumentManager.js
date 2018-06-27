@@ -54,6 +54,22 @@ module.exports.createNewDocument = function({ webstrateId, prototypeId, version,
 			return next && next(err, webstrateId);
 		}
 
+        // Add metadata to the prototype webstrate
+        module.exports.addMetadata(snapshot.id, version, 'parent', {id: webstrateId, v: 0}, function(err, res){
+            if (err) {
+                console.error(err);
+                return res.status(409).send(String(err));
+            }
+        });
+
+        // Add metadata to the new webstrate
+        module.exports.addMetadata(webstrateId, 0, 'child', {id: snapshot.id, v: version}, function(err, res){
+            if (err) {
+                console.error(err);
+                return res.status(409).send(String(err));
+            }
+        });
+
 		// Add current tag if it exists. All other tags are left behind, because the new document
 		// starts from version 1.
 		if (snapshot.label) {
@@ -403,6 +419,37 @@ module.exports.addTagToSnapshot = function(snapshot, next) {
 		next && next(err, snapshot);
 	});
 };
+
+/**
+ * Get metadata for a webstrate.
+ * @param  {string}   webstrateId WebstrateId.
+ * @param  {Function} next        Callback (optional).
+ * @public
+ */
+module.exports.getMetadata = function(webstrateId, next) {
+	db.metadata.find({webstrateId}, {})
+        .toArray((err, list) => {
+			next(err, list);
+		});
+};
+
+/**
+* Add metadata to a webstrate
+* @param  {string}  webstrateId WebstrateId.
+* @param  {number}  version     Version of the webstrate.
+* @param  {string}  event       Event occoured, is the webstrate a child or a parent.
+* @param  {JSON}    data        Data to store.
+* @param  {Function} next       Callback (optional).
+* @public
+**/
+module.exports.addMetadata = function(id, version, event, data, next){
+    db.metadata.insert({
+        webstrateId: id,
+        v: version,
+        e: event,
+        d: data,
+    }, next);
+}
 
 /**
  * Transforms a document to a specific version.

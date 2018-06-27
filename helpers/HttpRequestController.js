@@ -85,6 +85,22 @@ function extractVersionOrTag(versionOrTag) {
 }
 
 /**
+ * Requesting metadata by calling `/<id>?metadata`.
+ * @param {obj} req Express request object.
+ * @param {obj} res Express response object.
+ * @private
+ */
+function serveMetadata(req, res) {
+	documentManager.getMetadata(req.webstrateId, function(err, metadata) {
+		if (err) {
+			console.error(err);
+			return res.status(409).send(String(err));
+		}
+		res.json(metadata);
+	});
+}
+
+/**
  * Extract host from a URL string, e.g. get `domain:8000` from `http://user:pass@domain:8000/path/`.
  * @param  {string} urlString URL string.
  * @return {string}           Host string.
@@ -303,6 +319,15 @@ module.exports.requestHandler = function(req, res) {
 			}
 
 			return copyWebstrate(req, res, snapshot);
+		}
+
+		// Requesting a Metadata version of the webstrate by calling `/<id>?metadata`.
+		if ('metadata' in req.query) {
+			if (!snapshot.type) {
+				return res.status(404).send('Document doesn\'t exist.');
+			}
+
+			return serveMetadata(req, res);
 		}
 
 		// Requesting to restore document to a previous version or tag by calling:

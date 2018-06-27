@@ -25,4 +25,6 @@ MongoClient.connect(global.config.db, function(err, _db) {
 	db.messages.ensureIndex({ createdAt: 1, expireAfterSeconds: 60 * 60 * 24 * 30 });
 	db.cookies = _db.collection('cookies');
 	db.cookies.ensureIndex({ userId: 1, webstrateId: 1 }, { unique: true });
+	db.metadata = _db.collection('metadata');
+	db.metadata.ensureIndex({webstrateId: 1});
 });
