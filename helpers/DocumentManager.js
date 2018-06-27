@@ -451,6 +451,47 @@ module.exports.addMetadata = function(id, version, event, data, next){
     }, next);
 }
 
+
+/**
+* Returns all the copies of a webstrate using recursion algorithm
+* @param  {string}  id      WebstrateId.
+* @param  {Function} next   Callback (optional).
+* @public
+**/
+module.exports.getCopies = function(id, next){
+    // Copy webstrates are found using recursive asynchronous calls
+    // This is a complicated implementation because it uses both recursion and
+    // loop asynchronously.
+    // see: https://mostafa-samir.github.io/async-recursive-patterns-pt2/
+    function getMeta(webstrateId, copies, originalWebstrateId, lastWebstrateId){
+        return new Promise(function(resolve, reject){
+            db.metadata.find({webstrateId}, {})
+                .toArray(function(err, list){
+                    async function helper(){
+                        for(var i in list){
+                            if(list[i].d.id != lastWebstrateId){
+                                copies.push(list[i].d.id);
+                                await getMeta(list[i].d.id, copies, originalWebstrateId, webstrateId);
+                            }
+                        }
+
+                        if(list.length > 0){
+                            if(list[0].webstrateId === originalWebstrateId){
+                                next(err, copies);
+                            }
+                        }
+
+                    }
+                    helper();
+                    resolve();
+                });
+        })
+    }
+
+    var copies = [];
+    getMeta(id, copies, id);
+}
+
 /**
  * Transforms a document to a specific version.
  * @param  {string}   options.webstrateId WebstrateId.
