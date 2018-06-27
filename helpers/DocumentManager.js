@@ -453,16 +453,15 @@ module.exports.addMetadata = function(id, version, event, data, next){
 
 
 /**
-* Returns all the copies of a webstrate using recursion algorithm
+* Returns all the copies of a webstrate using its metadata.
+* Uses asynchronous recursion and scynchronous loops.
+* see: https://mostafa-samir.github.io/async-recursive-patterns-pt2/
+*
 * @param  {string}  id      WebstrateId.
 * @param  {Function} next   Callback (optional).
 * @public
 **/
 module.exports.getCopies = function(id, next){
-    // Copy webstrates are found using recursive asynchronous calls
-    // This is a complicated implementation because it uses both recursion and
-    // loop asynchronously.
-    // see: https://mostafa-samir.github.io/async-recursive-patterns-pt2/
     function getMeta(webstrateId, copies, originalWebstrateId, lastWebstrateId){
         return new Promise(function(resolve, reject){
             db.metadata.find({webstrateId}, {})
@@ -491,6 +490,36 @@ module.exports.getCopies = function(id, next){
     var copies = [];
     getMeta(id, copies, id);
 }
+
+/**
+* Returns list of webstrate versions and their timestamps
+* @param  {string}  id          WebstrateId
+* @param  {Function} next       Callback (optional).
+* @public
+**/
+module.exports.getVersionTimestamp = function(webstrateId, next){
+    db.versionTimestamp.find({webstrateId}, {})
+        .toArray((err, list) => {
+			next(err, list);
+		});
+}
+
+/**
+* Adds version timestamp to versionTimestamp database
+* @param  {string}  id          WebstrateId
+* @param  {string}  version     Version of the webstrate
+* @param  {number}  timestamp   timestamp of the version
+* @param  {Function} next       Callback (optional).
+* @public
+**/
+module.exports.addVersionTimestamp = function(webstrateId, version, timestamp, callback){
+    db.versionTimestamp.insert({
+        webstrateId: webstrateId,
+        v: version,
+        timestamp: timestamp,
+    }, callback);
+}
+
 
 /**
  * Transforms a document to a specific version.

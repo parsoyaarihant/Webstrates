@@ -223,6 +223,24 @@ exports.onmessage = (ws, req, data, next) => {
 					}
 					break;
 				}
+
+				// Add timestamp to a version in its databse versionTimestamp
+				case 'addVersionTimestamp': {
+					documentManager.addVersionTimestamp(data.d, data.v, data.t, function(err, res) {
+						if (data.token) {
+							const returnObject = { wa: 'reply', token: data.token };
+							if (err) {
+								console.error(err);
+								returnObject.error = err.message;
+							} else {
+								returnObject.reply = res;
+							}
+							ws.send(JSON.stringify(returnObject));
+						}
+					});
+					break;
+				}
+
 				default:
 					console.warn('Unknown command from %s on %s: %o', user.userId, webstrateId, data);
 			}

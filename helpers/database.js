@@ -27,4 +27,6 @@ MongoClient.connect(global.config.db, function(err, _db) {
 	db.cookies.ensureIndex({ userId: 1, webstrateId: 1 }, { unique: true });
 	db.metadata = _db.collection('metadata');
 	db.metadata.ensureIndex({webstrateId: 1});
+	db.versionTimestamp = _db.collection('versionTimestamp');
+	db.versionTimestamp.ensureIndex({webstrateId: 1});
 });

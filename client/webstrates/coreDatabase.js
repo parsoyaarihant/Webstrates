@@ -113,6 +113,12 @@ exports.subscribe = webstrateId => {
 				if (opsSource !== source) {
 					coreEvents.triggerEvent('receivedOps', ops);
 				}
+                websocket.send({
+                    wa: 'addVersionTimestamp',
+                    d: doc.id,
+                    v: doc.version,
+                    t: new Date().getTime()
+                }, (err, res) => {});
 			});
 
 			// This event gets triggered after all ops have been successfully been received by the

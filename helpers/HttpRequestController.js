@@ -100,6 +100,16 @@ function serveMetadata(req, res) {
 	});
 }
 
+function serveVersionTimestamp(req, res){
+	documentManager.getVersionTimestamp(req.webstrateId, function(err, data) {
+		if (err) {
+			console.error(err);
+			return res.status(409).send(String(err));
+		}
+		res.json(data);
+	});
+}
+
 /**
  * Extract host from a URL string, e.g. get `domain:8000` from `http://user:pass@domain:8000/path/`.
  * @param  {string} urlString URL string.
@@ -328,6 +338,15 @@ module.exports.requestHandler = function(req, res) {
 			}
 
 			return serveMetadata(req, res);
+		}
+
+		// Requesting list of version timestamps of webstrate by calling `/<id>?metadata`.
+		if ('timestamp' in req.query) {
+			if (!snapshot.type) {
+				return res.status(404).send('Document doesn\'t exist.');
+			}
+
+			return serveVersionTimestamp(req, res);
 		}
 
 		// Requesting to restore document to a previous version or tag by calling:
