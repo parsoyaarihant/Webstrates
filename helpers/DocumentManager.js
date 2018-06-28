@@ -244,7 +244,13 @@ module.exports.deleteDocument = function(webstrateId, source, next) {
 module.exports.getDocumentVersion = function(webstrateId, next) {
 	db.webstrates.findOne({ _id: webstrateId }, { _v: 1}, function(err, doc) {
 		if (err) return next && next(err);
-		return next && next(null, Number(doc._v));
+        if(doc){
+            return next && next(null, Number(doc._v));
+        } else{
+            console.error('Document does not exist');
+            return next(null, Number(0));
+        }
+
 	});
 };
 

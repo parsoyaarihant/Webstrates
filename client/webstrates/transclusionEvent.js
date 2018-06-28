@@ -15,7 +15,9 @@ if (coreUtils.isTranscluded()) {
 				detail: [
 					globalObject.publicObject.webstrateId,
 					globalObject.publicObject.clientId,
-					globalObject.publicObject.user
+					globalObject.publicObject.user,
+					window.frameElement,
+					window.parent
 				],
 				bubbles: true,
 				cancelable: true
