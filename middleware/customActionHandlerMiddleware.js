@@ -241,6 +241,112 @@ exports.onmessage = (ws, req, data, next) => {
 					break;
 				}
 
+				case 'getDocumentVersion':{
+					documentManager.getDocumentVersion(data.d, function(err, res) {
+						if (data.token) {
+							const returnObject = { wa: 'reply', token: data.token };
+							if (err) {
+								console.error(err);
+								returnObject.error = err.message;
+							} else {
+								returnObject.reply = res;
+							}
+							ws.send(JSON.stringify(returnObject));
+						}
+					});
+					break;
+				}
+
+				case 'getVersionTimestamp': {
+					documentManager.getVersionTimestamp(data.d, data.v, function(err, res) {
+						if (data.token) {
+							const returnObject = { wa: 'reply', token: data.token };
+							if (err) {
+								console.error(err);
+								returnObject.error = err.message;
+							} else {
+								returnObject.reply = res;
+							}
+							ws.send(JSON.stringify(returnObject));
+						}
+					});
+					break;
+				}
+
+				case 'getVersionBeforeTimestamp': {
+					documentManager.getVersionBeforeTimestamp(data.d, data.t, function(err, res) {
+						if (data.token) {
+							const returnObject = { wa: 'reply', token: data.token };
+							if (err) {
+								console.error(err);
+								returnObject.error = err.message;
+							} else {
+								returnObject.reply = res;
+							}
+							ws.send(JSON.stringify(returnObject));
+						}
+					});
+					break;
+				}
+
+
+				// Create a new webstrate
+				case 'copyWebstrate': {
+					documentManager.createNewDocument({
+						webstrateId: data.n,
+						prototypeId: data.d,
+						version: Number(data.v),
+						tag: null,
+						snapshot: null
+					}, function(err, res) {
+						if (data.token) {
+							const returnObject = { wa: 'reply', token: data.token };
+							if (err) {
+								console.error(err);
+								returnObject.error = err.message;
+							} else {
+								returnObject.reply = res;
+							}
+							ws.send(JSON.stringify(returnObject));
+						}
+					});
+					break;
+				}
+
+				// Get all tags of a webstrateID
+				case 'allTags': {
+					documentManager.getTags(data.d, function(err, res) {
+						if (data.token) {
+							const returnObject = { wa: 'reply', token: data.token };
+							if (err) {
+								console.error(err);
+								returnObject.error = err.message;
+							} else {
+								returnObject.reply = res;
+							}
+							ws.send(JSON.stringify(returnObject));
+						}
+					});
+					break;
+				}
+
+				// Get the WebstrateId of copies of a webstrate
+				case 'getCopies':{
+					documentManager.getCopies(data.d,function(err, res) {
+						if (data.token) {
+							const returnObject = { wa: 'reply', token: data.token };
+							if (err) {
+								console.error(err);
+								returnObject.error = err.message;
+							} else {
+								returnObject.reply = res;
+							}
+							ws.send(JSON.stringify(returnObject));
+						}
+					});
+					break;
+				}
+
 				default:
 					console.warn('Unknown command from %s on %s: %o', user.userId, webstrateId, data);
 			}

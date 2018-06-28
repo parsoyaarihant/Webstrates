@@ -521,6 +521,41 @@ module.exports.addVersionTimestamp = function(webstrateId, version, timestamp, c
 }
 
 
+// returns the timestamp for the given version of the webstrate
+module.exports.getVersionTimestamp = function(webstrateId, version, next){
+    db.versionTimestamp.findOne({
+        webstrateId: webstrateId,
+        v: version
+    }, {}, function(err, res){
+        if(err){
+            console.log(err);
+        }
+        if(!res){
+            next(new Error('Version '+ version + ' does not have timestamp'), null);
+        } else{
+            next(err, res.timestamp);
+        }
+    });
+}
+
+
+// Returns the version before the given timestamp
+module.exports.getVersionBeforeTimestamp = function(webstrateId, timestamp, next){
+    db.versionTimestamp.find({ webstrateId: webstrateId}, {})
+		.sort({ t: 1 })
+        .toArray((err, list) => {
+            var v = 1;
+            for(var i in list){
+                if(list[i].timestamp > timestamp){
+                    return next(err, v);
+                }
+                v = list[i].v;
+            }
+            return next(err, v);
+		});
+}
+
+
 /**
  * Transforms a document to a specific version.
  * @param  {string}   options.webstrateId WebstrateId.

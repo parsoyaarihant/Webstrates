@@ -20,7 +20,8 @@ module.exports = {
 		'userObjectSignaling',
 		'assets',
 		'messages',
-		'keepAlive'
+		'keepAlive',
+		'history'
 	],
 	// Reuse the parent's websocket when doing transclusion. Very experimental.
 	reuseWebsocket: false,
