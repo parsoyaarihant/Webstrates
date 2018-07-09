@@ -27,11 +27,21 @@ globalObject.publicObject.copyWebstrate = (newWebstrateId, webstrateId, version,
 }
 
 globalObject.publicObject.getVersionTimestamp = (webstrateId, version, callback) => {
-    websocket.send({
-        wa: 'getVersionTimestamp',
-        d: webstrateId,
-        v: Number(version)
-    }, callback);
+    if(!version){
+        return callback(null, new Date().getTime());
+    }
+
+    globalObject.publicObject.getDocumentVersion(webstrateId, (err, latestVersion) => {
+        if(version >= latestVersion){
+            return callback(err, new Date().getTime());
+        }
+
+        websocket.send({
+            wa: 'getVersionTimestamp',
+            d: webstrateId,
+            v: Number(version)
+        }, callback);
+    })
 }
 
 globalObject.publicObject.getVersionBeforeTimestamp = (webstrateId, timestamp, callback) => {
@@ -39,7 +49,16 @@ globalObject.publicObject.getVersionBeforeTimestamp = (webstrateId, timestamp, c
         wa: 'getVersionBeforeTimestamp',
         d: webstrateId,
         t: Number(timestamp)
-    }, callback);
+    }, function(err, version){
+        globalObject.publicObject.getDocumentVersion(webstrateId, function(err, latestVersion){
+            if(version >= latestVersion){
+                return callback(err, latestVersion);
+            }
+            return callback(err, version + 1);
+        });
+    });
+
+
 }
 
 // Returns all the operations on a given webstrate
@@ -71,4 +90,28 @@ globalObject.publicObject.getCopies = (webstrateId, callback) => {
         wa: 'getCopies',
         d: webstrateId,
     }, callback);
+}
+
+globalObject.publicObject.tagById = (webstrateId, label, version, callback) => {
+    websocket.send({
+		wa: 'tag',
+		d: webstrateId,
+		v: Number(version),
+		l: label
+	}, callback);
+}
+
+
+// returns raw html of a webstrate for a given version
+globalObject.publicObject.getHTML = (webstrateId, version, callback) => {
+    websocket.send({
+        wa: 'fetchdoc',
+        d: webstrateId,
+        v: Number(version)
+    }, (err, data) => {
+        if(err){
+            console.log(err);
+        }
+        return callback(err, coreJsonML.toHTML(data.data));
+    });
 }

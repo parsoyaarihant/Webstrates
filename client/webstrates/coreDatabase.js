@@ -5,7 +5,6 @@ const coreWebsocket = require('./coreWebsocket');
 const globalObject = require('./globalObject');
 const sharedb = require('sharedb/lib/client');
 const COLLECTION_NAME = 'webstrates';
-const websocket = coreWebsocket.copy(event => event.data.startsWith('{"wa":'));
 
 coreEvents.createEvent('receivedDocument');
 coreEvents.createEvent('receivedOps');
@@ -114,12 +113,6 @@ exports.subscribe = webstrateId => {
 				if (opsSource !== source) {
 					coreEvents.triggerEvent('receivedOps', ops);
 				}
-                websocket.send({
-                    wa: 'addVersionTimestamp',
-                    d: doc.id,
-                    v: doc.version,
-                    t: new Date().getTime()
-                }, (err, res) => {});
 			});
 
 			// This event gets triggered after all ops have been successfully been received by the

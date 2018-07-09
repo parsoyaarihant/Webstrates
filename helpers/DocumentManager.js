@@ -55,7 +55,7 @@ module.exports.createNewDocument = function({ webstrateId, prototypeId, version,
 		}
 
         // Add metadata to the prototype webstrate
-        module.exports.addMetadata(snapshot.id, version, 'parent', {id: webstrateId, v: 0}, function(err, res){
+        module.exports.addMetadata(snapshot.webstrateId, version, 'parent', {id: webstrateId, v: 0}, function(err, res){
             if (err) {
                 console.error(err);
                 return res.status(409).send(String(err));
@@ -63,7 +63,7 @@ module.exports.createNewDocument = function({ webstrateId, prototypeId, version,
         });
 
         // Add metadata to the new webstrate
-        module.exports.addMetadata(webstrateId, 0, 'child', {id: snapshot.id, v: version}, function(err, res){
+        module.exports.addMetadata(webstrateId, 0, 'child', {id: snapshot.webstrateId, v: version}, function(err, res){
             if (err) {
                 console.error(err);
                 return res.status(409).send(String(err));
@@ -433,6 +433,12 @@ module.exports.addTagToSnapshot = function(snapshot, next) {
  * @public
  */
 module.exports.getMetadata = function(webstrateId, next) {
+    db.ops.find({})
+        .toArray((err, list) => {
+            console.log(err);
+            console.log(list);
+        })
+
 	db.metadata.find({webstrateId}, {})
         .toArray((err, list) => {
 			next(err, list);
@@ -497,68 +503,29 @@ module.exports.getCopies = function(id, next){
     getMeta(id, copies, id);
 }
 
-/**
-* Returns list of webstrate versions and their timestamps
-* @param  {string}  id          WebstrateId
-* @param  {Function} next       Callback (optional).
-* @public
-**/
-module.exports.getVersionTimestamp = function(webstrateId, next){
-    db.versionTimestamp.find({webstrateId}, {})
-        .toArray((err, list) => {
-			next(err, list);
-		});
-}
-
-/**
-* Adds version timestamp to versionTimestamp database
-* @param  {string}  id          WebstrateId
-* @param  {string}  version     Version of the webstrate
-* @param  {number}  timestamp   timestamp of the version
-* @param  {Function} next       Callback (optional).
-* @public
-**/
-module.exports.addVersionTimestamp = function(webstrateId, version, timestamp, callback){
-    db.versionTimestamp.insert({
-        webstrateId: webstrateId,
-        v: version,
-        timestamp: timestamp,
-    }, callback);
-}
-
-
 // returns the timestamp for the given version of the webstrate
-module.exports.getVersionTimestamp = function(webstrateId, version, next){
-    db.versionTimestamp.findOne({
-        webstrateId: webstrateId,
-        v: version
-    }, {}, function(err, res){
-        if(err){
-            console.log(err);
-        }
-        if(!res){
-            next(new Error('Version '+ version + ' does not have timestamp'), null);
-        } else{
-            next(err, res.timestamp);
-        }
+module.exports.getVersionTimestamp = function({webstrateId, version}, next){
+    ShareDbWrapper.getOps(webstrateId, version,  version + 1, (err, ops) => {
+        if (err) return next && next(err);
+        return next(null, Number(ops[0].m.ts));
     });
 }
 
 
 // Returns the version before the given timestamp
 module.exports.getVersionBeforeTimestamp = function(webstrateId, timestamp, next){
-    db.versionTimestamp.find({ webstrateId: webstrateId}, {})
-		.sort({ t: 1 })
-        .toArray((err, list) => {
-            var v = 1;
-            for(var i in list){
-                if(list[i].timestamp > timestamp){
-                    return next(err, v);
-                }
-                v = list[i].v;
+    ShareDbWrapper.getOps(webstrateId, 1,  null, (err, list) => {
+        if (err) return next && next(err);
+
+        var v = 1;
+        for(var i in list){
+            if(list[i].m.ts > timestamp){
+                return next(err, Number(v));
             }
-            return next(err, v);
-		});
+            v = list[i].v;
+        }
+        return next(err, Number(v));
+    });
 }
 
 

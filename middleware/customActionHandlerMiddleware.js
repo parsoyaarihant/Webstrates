@@ -224,23 +224,6 @@ exports.onmessage = (ws, req, data, next) => {
 					break;
 				}
 
-				// Add timestamp to a version in its databse versionTimestamp
-				case 'addVersionTimestamp': {
-					documentManager.addVersionTimestamp(data.d, data.v, data.t, function(err, res) {
-						if (data.token) {
-							const returnObject = { wa: 'reply', token: data.token };
-							if (err) {
-								console.error(err);
-								returnObject.error = err.message;
-							} else {
-								returnObject.reply = res;
-							}
-							ws.send(JSON.stringify(returnObject));
-						}
-					});
-					break;
-				}
-
 				case 'getDocumentVersion':{
 					documentManager.getDocumentVersion(data.d, function(err, res) {
 						if (data.token) {
@@ -258,7 +241,8 @@ exports.onmessage = (ws, req, data, next) => {
 				}
 
 				case 'getVersionTimestamp': {
-					documentManager.getVersionTimestamp(data.d, data.v, function(err, res) {
+					const version = data.v;
+					documentManager.getVersionTimestamp({webstrateId, version}, function(err, res) {
 						if (data.token) {
 							const returnObject = { wa: 'reply', token: data.token };
 							if (err) {
@@ -332,7 +316,7 @@ exports.onmessage = (ws, req, data, next) => {
 
 				// Get the WebstrateId of copies of a webstrate
 				case 'getCopies':{
-					documentManager.getCopies(data.d,function(err, res) {
+					documentManager.getCopies(data.d, function(err, res) {
 						if (data.token) {
 							const returnObject = { wa: 'reply', token: data.token };
 							if (err) {
