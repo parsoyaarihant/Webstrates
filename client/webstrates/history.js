@@ -131,7 +131,7 @@ globalObject.publicObject.allTags = (webstrateId, callback) => {
 }
 
 /**
- * Get all tags for a given webstrateId
+ * Tag a webstrate of specific version
  * @param  {String}     webstrateId     webstrateId
  * @param  {String}     label           tag label
  * @return {Number}     version         version to be tagged
@@ -149,7 +149,7 @@ globalObject.publicObject.tagById = (webstrateId, label, version, callback) => {
 
 
 /**
- * Get all tags for a given webstrateId
+ * Returns HTML script of given webstrate
  * @param  {String}     webstrateId     webstrateId
  * @param  {String}     label           tag label
  * @return {HTML Object} HTML script of the webstrate.

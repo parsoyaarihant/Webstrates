@@ -15,8 +15,7 @@ if (coreUtils.isTranscluded()) {
 				detail: [
 					globalObject.publicObject.webstrateId,
 					globalObject.publicObject.clientId,
-					globalObject.publicObject.user,
-					globalObject.publicObject.isStatic
+					globalObject.publicObject.user
 				],
 				bubbles: true,
 				cancelable: true
