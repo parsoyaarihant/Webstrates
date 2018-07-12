@@ -54,22 +54,6 @@ module.exports.createNewDocument = function({ webstrateId, prototypeId, version,
 			return next && next(err, webstrateId);
 		}
 
-        // Add metadata to the prototype webstrate
-        module.exports.addMetadata(snapshot.webstrateId, version, 'parent', {id: webstrateId, v: 0}, function(err, res){
-            if (err) {
-                console.error(err);
-                return res.status(409).send(String(err));
-            }
-        });
-
-        // Add metadata to the new webstrate
-        module.exports.addMetadata(webstrateId, 0, 'child', {id: snapshot.webstrateId, v: version}, function(err, res){
-            if (err) {
-                console.error(err);
-                return res.status(409).send(String(err));
-            }
-        });
-
 		// Add current tag if it exists. All other tags are left behind, because the new document
 		// starts from version 1.
 		if (snapshot.label) {
@@ -427,94 +411,74 @@ module.exports.addTagToSnapshot = function(snapshot, next) {
 };
 
 /**
- * Get metadata for a webstrate.
- * @param  {string}   webstrateId WebstrateId.
- * @param  {Function} next        Callback (optional).
- * @public
- */
-module.exports.getMetadata = function(webstrateId, next) {
-    db.ops.find({})
-        .toArray((err, list) => {
-            console.log(err);
-            console.log(list);
-        })
-
-	db.metadata.find({webstrateId}, {})
-        .toArray((err, list) => {
-			next(err, list);
-		});
-};
-
-/**
-* Add metadata to a webstrate
-* @param  {string}  webstrateId WebstrateId.
-* @param  {number}  version     Version of the webstrate.
-* @param  {string}  event       Event occoured, is the webstrate a child or a parent.
-* @param  {JSON}    data        Data to store.
-* @param  {Function} next       Callback (optional).
-* @public
-**/
-module.exports.addMetadata = function(id, version, event, data, next){
-    db.metadata.insert({
-        webstrateId: id,
-        v: version,
-        e: event,
-        d: data,
-    }, next);
-}
-
-
-/**
 * Returns all the copies of a webstrate using its metadata.
-* Uses asynchronous recursion and scynchronous loops.
-* see: https://mostafa-samir.github.io/async-recursive-patterns-pt2/
+* Uses simple graph traversal along with acynchronous callbacks
 *
 * @param  {string}  id      WebstrateId.
 * @param  {Function} next   Callback (optional).
 * @public
 **/
-module.exports.getCopies = function(id, next){
-    function getMeta(webstrateId, copies, originalWebstrateId, lastWebstrateId){
-        return new Promise(function(resolve, reject){
-            db.metadata.find({webstrateId}, {})
-                .toArray(function(err, list){
-                    async function helper(){
-                        for(var i in list){
-                            if(list[i].d.id != lastWebstrateId){
-                                copies.push(list[i].d.id);
-                                await getMeta(list[i].d.id, copies, originalWebstrateId, webstrateId);
-                            }
-                        }
+module.exports.getCopies = function(webstrateId, next){
+    var unvisited = [webstrateId]; // Unvisited webstrates
+    var visited = []; // visited webstrates
+    getCopies(unvisited[0]);
 
-                        if(list.length > 0){
-                            if(list[0].webstrateId === originalWebstrateId){
-                                next(err, copies);
-                            }
-                        }
+    function getCopies(id){
+        // get the webstrateId of children
+        db.o_webstrates.find({"create.id": id}, {'d': true}).toArray(function(err, children) {
+            if (err) return next && next(err);
 
+            for(var i in children){
+                if(visited.indexOf(children[i].d) < 0){
+                    unvisited.push(children[i].d);
+                }
+            }
+
+            // Get the WebstrateId of parent
+            db.o_webstrates.find({d: id}, {"create.id": 1}).toArray(function(err, parent){
+                if (err) return next && next(err);
+
+                if(parent[0].create.id){
+                    if(visited.indexOf(parent[0].create.id) < 0){
+                        unvisited.push(parent[0].create.id);
                     }
-                    helper();
-                    resolve();
-                });
-        })
-    }
+                }
 
-    var copies = [];
-    getMeta(id, copies, id);
+                visited.push(id);
+                unvisited.shift();
+
+                if(unvisited.length == 0){
+                    return next(null, visited);
+                } else{
+                    getCopies(unvisited[0])
+                }
+            })
+        });
+    }
 }
 
-// returns the timestamp for the given version of the webstrate
+/**
+ * Return timestamp value of a webstrate version
+ * @param  {String}     webstrateId         webstrateId
+ * @param  {Number}     version             version number of corresponding webstrate
+ * @return {Number}                         returns the timestamp value of version
+ */
 module.exports.getVersionTimestamp = function({webstrateId, version}, next){
-    ShareDbWrapper.getOps(webstrateId, version,  version + 1, (err, ops) => {
+    db.o_webstrates.find({d: webstrateId, v: version}).toArray((err, ops) => {
         if (err) return next && next(err);
         return next(null, Number(ops[0].m.ts));
     });
 }
 
 
-// Returns the version before the given timestamp
-module.exports.getVersionBeforeTimestamp = function(webstrateId, timestamp, next){
-    ShareDbWrapper.getOps(webstrateId, 1,  null, (err, list) => {
+/**
+ * Returns the version of webstrate before given timestamp
+ * @param  {String}     webstrateId         webstrateId
+ * @param  {Number}     timestamp           timestamp value
+ * @return {Number}     version             version number before the timestamp value
+ */
+ module.exports.getVersionBeforeTimestamp = function(webstrateId, timestamp, next){
+    db.o_webstrates.find({d: webstrateId}).toArray((err, list) => {
         if (err) return next && next(err);
 
         var v = 1;
@@ -541,7 +505,7 @@ module.exports.getVersionBeforeTimestamp = function(webstrateId, timestamp, next
  */
 function transformDocumentToVersion({ webstrateId, snapshot, version }, next) {
 	if (!snapshot) {
-		snapshot = { v: 0 };
+		snapshot = { v: 0, id: webstrateId };
 	}
 
 	module.exports.getOps({ webstrateId, initialVersion: snapshot.v, version }, function(err, ops) {
